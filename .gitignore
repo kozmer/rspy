@@ -1,0 +1,11 @@
+debug/
+target/
+
+**/*.rs.bk
+
+Cargo.lock
+
+*.pdb
+
+Makefile
+docker/

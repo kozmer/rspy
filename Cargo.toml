@@ -1,0 +1,32 @@
+[package]
+name = "rspy"
+version = "1.0.0"
+edition = "2024"
+build = "build.rs"
+
+[[bin]]
+name = "rspy"
+path = "src/rspy.rs"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+debug = false
+
+[dependencies]
+libc = "0.2"
+procfs = "0.11.0"
+walkdir = "2.3"
+
+# https://github.com/diwic/dbus-rs/blob/master/libdbus-sys/cross_compile.md
+dbus = {version = "0.9.7", features = ["vendored"]}
+
+clap = { version = "4.4", features = ["derive"] }
+log = "0.4.14"
+colored = "2.0.0"
+chrono = "0.4"
+thiserror = "1.0"
+ctrlc = "3.4"
+rustc-hash = "1.1"
