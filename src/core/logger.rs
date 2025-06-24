@@ -68,18 +68,27 @@ impl Logger {
     }
 
     pub fn dbus_event(_name: &str, pid: u32, cmd: &str) {
-        // we dont have uid info for dbus events
-        let uid_display = UNKNOWN_UID_DISPLAY;
+        Self::dbus_event_with_uid(_name, pid, cmd, None);
+    }
+
+    pub fn dbus_event_with_uid(_name: &str, pid: u32, cmd: &str, uid: Option<u32>) {
+        let uid_display = uid.map_or(UNKNOWN_UID_DISPLAY.to_string(), |u| {
+            format!("{:<width$}", u, width = UID_DISPLAY_WIDTH)
+        });
         let message = format!(
-            "DBUS: UID={:<width$} PID={:<pid_width$} | {}",
+            "DBUS: UID={} PID={:<pid_width$} | {}",
             uid_display,
             pid,
             cmd,
-            width = UID_DISPLAY_WIDTH,
             pid_width = PID_DISPLAY_WIDTH
         );
 
-        let colored_message = message.yellow();
+        let colored_message = match uid {
+            Some(ROOT_UID) => message.red(),
+            Some(USER_UID) => message.blue(),
+            None => message.yellow(),
+            _ => message.normal(),
+        };
 
         println!("{} {}", Self::timestamp(), colored_message);
         if let Err(e) = std::io::stdout().flush() {

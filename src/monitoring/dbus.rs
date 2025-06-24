@@ -1,6 +1,7 @@
 use dbus::blocking::Connection;
 use std::collections::HashSet;
 use std::time::Duration;
+use std::fs;
 
 use crate::core::{
     constants::{DBUS_DEFAULT_SLEEP_MS, DBUS_PROXY_TIMEOUT_SECS},
@@ -11,6 +12,21 @@ use crate::core::{
 pub struct DBusScanner {
     printed_processes: HashSet<u32>,
     interval: Option<Duration>,
+}
+
+fn lookup_uid(pid: u32) -> Option<u32> {
+    let status_path = format!("/proc/{}/status", pid);
+    match fs::read_to_string(&status_path) {
+        Ok(status_content) => {
+            for line in status_content.lines() {
+                if line.starts_with("Uid:") {
+                    return line.split_whitespace().nth(1)?.parse().ok();
+                }
+            }
+            None
+        }
+        Err(_) => None,
+    }
 }
 
 impl DBusScanner {
@@ -67,7 +83,8 @@ impl DBusScanner {
 
                     for (name, pid, cmdline) in processes {
                         if self.printed_processes.insert(pid) {
-                            Logger::dbus_event(&name, pid, &cmdline);
+                            let uid = lookup_uid(pid);
+                            Logger::dbus_event_with_uid(&name, pid, &cmdline, uid);
                         }
                     }
                 }
