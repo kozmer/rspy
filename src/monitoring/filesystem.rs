@@ -2,7 +2,7 @@ use libc::{self, IN_ALL_EVENTS, IN_OPEN, inotify_add_watch, inotify_init1};
 use rustc_hash::FxHashMap;
 use std::io;
 use std::os::unix::io::RawFd;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
 use std::thread;
 use walkdir::WalkDir;
@@ -122,7 +122,7 @@ impl FsWatcher {
         Ok(())
     }
 
-    fn add_watch(&mut self, path: &PathBuf, is_recursive: bool) -> Result<()> {
+    fn add_watch(&mut self, path: &Path, is_recursive: bool) -> Result<()> {
         if is_recursive {
             for entry in WalkDir::new(path)
                 .follow_links(true)
@@ -130,7 +130,7 @@ impl FsWatcher {
                 .filter_map(|e| e.ok())
                 .filter(|e| e.file_type().is_dir())
             {
-                self.add_watch_single(&entry.path().to_path_buf())?;
+                self.add_watch_single(entry.path())?;
             }
         } else {
             self.add_watch_single(path)?;
@@ -138,7 +138,7 @@ impl FsWatcher {
         Ok(())
     }
 
-    fn add_watch_single(&mut self, path: &PathBuf) -> Result<()> {
+    fn add_watch_single(&mut self, path: &Path) -> Result<()> {
         let path_str = match path.to_str() {
             Some(s) => std::ffi::CString::new(s)
                 .map_err(|e| format!("failed to create CString for path {:?}: {}", path, e))?,
@@ -161,7 +161,7 @@ impl FsWatcher {
         };
 
         if wd != -1 {
-            self.wd_to_path.insert(wd, path.clone());
+            self.wd_to_path.insert(wd, path.to_path_buf());
             if self.debug {
                 Logger::debug(format!("watching: {:?} (wd={})", path, wd));
             }
@@ -200,28 +200,26 @@ impl FsWatcher {
 
                             has_events = true;
 
-                            if print_events {
-                                if let Some(path) = wd_to_path.get(&event.wd) {
-                                    let event_str = format!(
-                                        "events: {} on {:?}",
-                                        Self::get_event_string(event.mask),
-                                        path
-                                    );
-                                    if let Err(e) = sender.send(event_str) {
-                                        Logger::error(format!("failed to send event: {}", e));
-                                    }
+                            if print_events
+                                && let Some(path) = wd_to_path.get(&event.wd)
+                            {
+                                let event_str = format!(
+                                    "events: {} on {:?}",
+                                    Self::get_event_string(event.mask),
+                                    path
+                                );
+                                if let Err(e) = sender.send(event_str) {
+                                    Logger::error(format!("failed to send event: {}", e));
                                 }
                             }
 
-                            if debug {
-                                if let Some(path) = wd_to_path.get(&event.wd) {
-                                    Logger::debug(format!(
-                                        "inotify event: mask={:x} ({}) on {:?}",
-                                        event.mask,
-                                        Self::get_event_string(event.mask),
-                                        path
-                                    ));
-                                }
+                            if debug && let Some(path) = wd_to_path.get(&event.wd) {
+                                Logger::debug(format!(
+                                    "inotify event: mask={:x} ({}) on {:?}",
+                                    event.mask,
+                                    Self::get_event_string(event.mask),
+                                    path
+                                ));
                             }
 
                             offset += std::mem::size_of::<InotifyEvent>() + event.len as usize;

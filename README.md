@@ -2,6 +2,7 @@ rust port of https://github.com/DominicBreuker/pspy with support for process mon
 
 cross is needed for cross-compilation due to the usage of dbus-rs lib within rspy.
 ```
+rustup target add x86_64-unknown-linux-musl
 cargo install cross --git https://github.com/cross-rs/cross
 cross build --target x86_64-unknown-linux-musl --release
 ```

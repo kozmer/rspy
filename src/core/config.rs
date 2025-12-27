@@ -50,6 +50,16 @@ pub struct Config {
 }
 
 impl Config {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        let config = Self::parse();
+        config.validate().unwrap_or_else(|e| {
+            eprintln!("configuration error: {}", e);
+            std::process::exit(1);
+        });
+        config
+    }
+
     pub fn scan_interval(&self) -> Option<Duration> {
         if self.no_interval {
             None
@@ -92,15 +102,6 @@ impl Config {
         }
     }
 
-    pub fn new() -> Self {
-        let config = Self::parse();
-        config.validate().unwrap_or_else(|e| {
-            eprintln!("configuration error: {}", e);
-            std::process::exit(1);
-        });
-        config
-    }
-
     fn validate(&self) -> Result<(), String> {
         if self.low_resource {
             if !self.recursive_watch_dirs.is_empty() {
@@ -119,8 +120,3 @@ impl Config {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self::new()
-    }
-}

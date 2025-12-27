@@ -1,5 +1,5 @@
 use procfs::process::{Process, all_processes};
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 use crate::core::{
     constants::{DEFAULT_NEW_PIDS_CAPACITY, UNKNOWN_COMMAND},
@@ -8,18 +8,16 @@ use crate::core::{
 };
 
 pub struct ProcessScanner {
-    seen_pids: HashSet<i32>,
-    #[allow(dead_code)]
-    current_pids: HashSet<i32>,
-    #[allow(dead_code)]
+    seen_pids: FxHashSet<i32>,
+    current_pids: FxHashSet<i32>,
     new_pids: Vec<i32>,
 }
 
 impl ProcessScanner {
     pub fn new() -> Self {
         Self {
-            seen_pids: HashSet::new(),
-            current_pids: HashSet::new(),
+            seen_pids: FxHashSet::default(),
+            current_pids: FxHashSet::default(),
             new_pids: Vec::new(),
         }
     }

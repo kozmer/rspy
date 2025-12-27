@@ -63,7 +63,6 @@ impl Scanner {
         let is_active = Arc::clone(&self.is_active);
         let interval = self.interval;
         let dbus_interval = self.dbus_interval;
-        let _dbus_only = self.dbus_only;
         let mut process_scanner = std::mem::take(&mut self.process_scanner);
 
         if let Some(trigger_rx) = self.trigger_rx.take() {
@@ -106,23 +105,23 @@ impl Scanner {
                         Duration::from_secs(SCANNER_MAX_TIMEOUT_SECS)
                     };
 
-                    if let Some(next_scan_time) = next_process_scan {
-                        if now >= next_scan_time {
-                            Logger::debug("starting interval-based process scan...".to_string());
-                            match process_scanner.scan_processes() {
-                                Ok(new_count) => {
-                                    Logger::debug(format!(
-                                        "interval scan completed. Found {} new processes. Time since last scan: {:?}",
-                                        new_count, time_since_last_process
-                                    ));
-                                }
-                                Err(e) => {
-                                    Logger::error(format!("interval scan failed: {}", e));
-                                }
+                    if let Some(next_scan_time) = next_process_scan
+                        && now >= next_scan_time
+                    {
+                        Logger::debug("starting interval-based process scan...".to_string());
+                        match process_scanner.scan_processes() {
+                            Ok(new_count) => {
+                                Logger::debug(format!(
+                                    "interval scan completed. Found {} new processes. Time since last scan: {:?}",
+                                    new_count, time_since_last_process
+                                ));
                             }
-                            last_process_scan = Instant::now();
-                            continue;
+                            Err(e) => {
+                                Logger::error(format!("interval scan failed: {}", e));
+                            }
                         }
+                        last_process_scan = Instant::now();
+                        continue;
                     }
 
                     match trigger_rx.recv_timeout(timeout) {

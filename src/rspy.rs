@@ -204,11 +204,11 @@ impl Runtime {
             None
         };
 
-        if let Some(watcher) = fs_watcher.as_mut() {
-            if let Err(e) = watcher.setup_watches() {
-                Logger::error(format!("failed to setup filesystem watches: {}", e));
-                std::process::exit(1);
-            }
+        if let Some(watcher) = fs_watcher.as_mut()
+            && let Err(e) = watcher.setup_watches()
+        {
+            Logger::error(format!("failed to setup filesystem watches: {}", e));
+            std::process::exit(1);
         }
 
         let mut scanner = Scanner::new(
@@ -222,11 +222,11 @@ impl Runtime {
         scanner.set_active(true);
         scanner.start();
 
-        if let Some(watcher) = fs_watcher {
-            if let Err(e) = watcher.start_watching() {
-                Logger::error(format!("failed to start filesystem watcher: {}", e));
-                std::process::exit(1);
-            }
+        if let Some(watcher) = fs_watcher
+            && let Err(e) = watcher.start_watching()
+        {
+            Logger::error(format!("failed to start filesystem watcher: {}", e));
+            std::process::exit(1);
         }
 
         self.event_loop(rx)

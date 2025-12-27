@@ -1,6 +1,6 @@
 [package]
 name = "rspy"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 build = "build.rs"
 
@@ -14,6 +14,7 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 debug = false
+panic = "abort"
 
 [dependencies]
 libc = "0.2"
@@ -26,7 +27,6 @@ dbus = {version = "0.9.7", features = ["vendored"]}
 clap = { version = "4.4", features = ["derive"] }
 log = "0.4.14"
 colored = "2.0.0"
-chrono = "0.4"
 thiserror = "1.0"
 ctrlc = "3.4"
 rustc-hash = "1.1"

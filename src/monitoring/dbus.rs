@@ -1,7 +1,7 @@
 use dbus::blocking::Connection;
-use std::collections::HashSet;
+use procfs::process::Process;
+use rustc_hash::FxHashSet;
 use std::time::Duration;
-use std::fs;
 
 use crate::core::{
     constants::{DBUS_DEFAULT_SLEEP_MS, DBUS_PROXY_TIMEOUT_SECS},
@@ -10,29 +10,22 @@ use crate::core::{
 };
 
 pub struct DBusScanner {
-    printed_processes: HashSet<u32>,
+    printed_processes: FxHashSet<u32>,
     interval: Option<Duration>,
 }
 
 fn lookup_uid(pid: u32) -> Option<u32> {
-    let status_path = format!("/proc/{}/status", pid);
-    match fs::read_to_string(&status_path) {
-        Ok(status_content) => {
-            for line in status_content.lines() {
-                if line.starts_with("Uid:") {
-                    return line.split_whitespace().nth(1)?.parse().ok();
-                }
-            }
-            None
-        }
-        Err(_) => None,
-    }
+    Process::new(pid as i32)
+        .ok()?
+        .status()
+        .ok()
+        .map(|s| s.ruid)
 }
 
 impl DBusScanner {
     pub fn new(interval: Option<Duration>) -> Self {
         DBusScanner {
-            printed_processes: HashSet::new(),
+            printed_processes: FxHashSet::default(),
             interval,
         }
     }
@@ -81,10 +74,10 @@ impl DBusScanner {
                     let (processes,): (Vec<(String, u32, String)>,) = result;
                     Logger::debug(format!("retrieved {} processes from dbus", processes.len()));
 
-                    for (name, pid, cmdline) in processes {
+                    for (_name, pid, cmdline) in processes {
                         if self.printed_processes.insert(pid) {
                             let uid = lookup_uid(pid);
-                            Logger::dbus_event_with_uid(&name, pid, &cmdline, uid);
+                            Logger::dbus_event_with_uid(pid, &cmdline, uid);
                         }
                     }
                 }
